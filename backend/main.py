@@ -7,9 +7,28 @@ import httpx
 import os
 import json
 from dotenv import load_dotenv
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# 1. Sabse pehle app ko define karein 🚨
+app = FastAPI()
+
+# 2. Phir CORS lagayein (Demo ke liye zaroori hai)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 3. Ab ye route kaam karega (Health Check) ✅
 @app.get("/")
 def home():
     return {"status": "Backend is running flawlessly!"}
+
+
 # Load .env file
 load_dotenv()
 
