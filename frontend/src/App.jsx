@@ -127,7 +127,7 @@ function App() {
   const silenceStepRef = useRef(0);
   const currentAudioRef = useRef(null);
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://aquila-backend-jy3a.onrender.com";
 
   useEffect(() => {
     const checkConnection = async () => {
