@@ -7,7 +7,9 @@ import httpx
 import os
 import json
 from dotenv import load_dotenv
-
+@app.get("/")
+def home():
+    return {"status": "Backend is running flawlessly!"}
 # Load .env file
 load_dotenv()
 
