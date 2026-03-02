@@ -10,27 +10,12 @@ from dotenv import load_dotenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-# 1. Sabse pehle app ko define karein 🚨
-app = FastAPI()
-
-# 2. Phir CORS lagayein (Demo ke liye zaroori hai)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# 3. Ab ye route kaam karega (Health Check) ✅
-@app.get("/")
-def home():
-    return {"status": "Backend is running flawlessly!"}
-
-
-# Load .env file
-load_dotenv()
+# Snowflake Config
+SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
+SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_TOKEN")
+AGENT_DB = os.getenv("AGENT_DB", "CAREONE_CROWNPALACE")
+AGENT_SCHEMA = os.getenv("AGENT_SCHEMA", "DATA")
+AGENT_NAME = os.getenv("AGENT_NAME", "CAREONE_HOTEL_AGENT")
 
 app = FastAPI()
 
@@ -43,13 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Snowflake Config
-SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
-SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_TOKEN")
-AGENT_DB = os.getenv("AGENT_DB", "CAREONE_CROWNPALACE")
-AGENT_SCHEMA = os.getenv("AGENT_SCHEMA", "DATA")
-AGENT_NAME = os.getenv("AGENT_NAME", "CAREONE_HOTEL_AGENT")
 
+
+@app.get("/")
+def home():
+    return {"status": "Backend is running!"}
 # Debug: Print config on startup
 print("=" * 50)
 print("🔧 BACKEND CONFIGURATION:")
