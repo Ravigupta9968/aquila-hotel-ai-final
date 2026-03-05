@@ -2,24 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
-import { Menu, Radio, Headphones, Hotel, Mic, X, Activity, Timer, Power, Zap, Brain } from 'lucide-react';
+import { Menu, Radio, Headphones, Hotel, Mic, X, Activity, Timer, Power, Zap, Brain, Volume, Speaker, MonitorSpeakerIcon } from 'lucide-react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
-// ==============================================
-// 🤖 4 DIFFERENT ROBOT STATES (URLS)
-// IMPORTANT: Apne public folder me in chaaro files ko inhi naamo se save kijiye!
-// ==============================================
-const IMG_IDLE = "/robot-idle.png";       // 1. Hello / Auto / Pause mode
-const IMG_LISTENING = "/robot-listening.png"; // 2. Jab AI aapki baat sun raha ho
-const IMG_THINKING = "/robot-thinking.png";  // 3. Processing / Data load mode
-const IMG_SPEAKING = "/robot-speaking.png";  // 4. Bolte waqt ka GIF
+
+const IMG_IDLE = "/robot-idle.png";       
+const IMG_LISTENING = "/robot-listening.png"; 
+const IMG_THINKING = "/robot-thinking.png"; 
+const IMG_SPEAKING = "/robot-speaking.png";  
 
 
-// ==============================================
-// ULTRA-REALISTIC AI ROBOT VISUALIZER (FIXED WAVES)
-// ==============================================
-// ==============================================
-// ULTRA-REALISTIC AI ROBOT VISUALIZER (FULL 3D EFFECTS & PERFECT TIMING)
 // ==============================================
 const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
   const isSpeaking = status === 'Speaking...';
@@ -55,7 +47,7 @@ const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
       {/* 2. THE STAGE: FIXED IMAGES & 3D LIGHTING */}
       <div className="relative z-0 w-full h-full flex items-center justify-center pb-10">
         
-        {/* 🔥 EFFECT 1: LISTENING RED GLOW (Robot ke Peeche) */}
+        {/*  EFFECT 1: LISTENING RED GLOW (Robot ke Peeche) */}
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[70%] rounded-full blur-[70px] transition-all duration-700 z-0 pointer-events-none ${
           isListening ? 'bg-red-600 opacity-50 scale-110' : 
           isSpeaking ? 'bg-emerald-600 opacity-20 scale-100' : 
@@ -103,6 +95,7 @@ const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
     </div>
   );
 };
+
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -461,7 +454,7 @@ function App() {
       
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed md:relative z-20 md:translate-x-0 transition-transform duration-300 ease-in-out h-full`}>
-        <Sidebar chatHistory={chatHistory} createNewChat={createNewChat} loadChat={loadChat} currentUser={currentUser} />
+        <Sidebar chatHistory={chatHistory} createNewChat={createNewChat} loadChat={loadChat} deleteChat={deleteChat} currentUser={currentUser} />
       </div>
 
       {/* Main Content Area */}
@@ -497,14 +490,13 @@ function App() {
                     onClick={() => setSpeechModeOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5 transition-all text-sm font-semibold"
                 >
-                    <Headphones size={18} className="animate-pulse opacity-90" />
                     <span className="hidden md:inline">Speech Mode</span>
                 </button>
             </div>
         </header>
 
-        <ChatArea messages={currentMessages} isLoading={isLoading} />
-        <ChatInput onSend={handleSendMessage} disabled={isLoading || !isConnected} />
+        <ChatArea messages={currentMessages} isLoading={isLoading} onFollowUpClick={handleSendMessage} />
+        <ChatInput onSend={handleSendMessage} disabled={isLoading || !isConnected} onMicClick={() => setSpeechModeOpen(true)}/>
         
         {sidebarOpen && (
           <div 
@@ -520,10 +512,16 @@ function App() {
       <div className={`fixed top-0 right-0 h-full w-[320px] sm:w-[400px] bg-white border-l border-slate-200 shadow-2xl z-50 transform transition-transform duration-500 ease-out flex flex-col ${speechModeOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           
           <button 
-             onClick={() => setSpeechModeOpen(false)} 
-             className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/80 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all shadow-md backdrop-blur-md"
+             onClick={() => {
+                 setSpeechModeOpen(false);
+                 setVoiceStatus('Idle');
+                 SpeechRecognition.stopListening();
+                 window.speechSynthesis.cancel();
+                 if (currentAudioRef.current) currentAudioRef.current.pause();
+             }} 
+             className="absolute top-6 right-6 z-[9999] p-3 rounded-full bg-white/90 hover:bg-red-50 text-slate-500     hover:text-red-600 transition-all shadow-xl backdrop-blur-md cursor-pointer border border-slate-200"
           >
-            <X size={20} strokeWidth={3} />
+             <X size={24} strokeWidth={2.5} />
           </button>
 
           <div className="flex-1 relative w-full h-full">

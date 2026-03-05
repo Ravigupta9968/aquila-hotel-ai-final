@@ -1,22 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { User, Sparkles, Table as TableIcon, BarChart2, LineChart, PieChart, Settings2 } from 'lucide-react';
+import { User, Sparkles, Table as TableIcon, BarChart2, LineChart, PieChart, Settings2, Database, Search } from 'lucide-react';
 import embed from 'vega-embed';
 
-const ChatArea = ({ messages, isLoading }) => {
+const ChatArea = ({ messages, isLoading, onFollowUpClick }) => {
   const messagesEndRef = useRef(null);
 
-  // 🔥 FIX: Chart aur Table load hone ke liye 150ms ka time diya, taaki hang na ho
   useEffect(() => {
     const scrollTimeout = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: 'end' });
     }, 150);
-    
     return () => clearTimeout(scrollTimeout);
   }, [messages, isLoading]);
 
   const formatText = (text) => {
     if (!text) return "";
-    // Naya formatting: Bold text ko dark blue/black me dikhayega premium look ke liye
     let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900 font-semibold">$1</strong>');
     formatted = formatted.replace(/\n/g, '<br/>');
     return formatted;
@@ -154,7 +151,6 @@ const ChatArea = ({ messages, isLoading }) => {
   };
 
   return (
-    // Background light theme (slate-50)
     <div className="flex-1 overflow-y-auto relative scrollbar-thin bg-slate-50">
       <div className="flex flex-col items-center text-sm pb-32 pt-8">
         
@@ -168,7 +164,6 @@ const ChatArea = ({ messages, isLoading }) => {
           </div>
         ) : (
           messages.map((msg, index) => (
-            // Message wrapper
             <div key={index} className={`w-full py-8 px-4 transition-all ${msg.role === 'assistant' ? 'bg-white border-y border-slate-100 shadow-[0_4px_20px_-15px_rgba(0,0,0,0.05)]' : 'bg-transparent'}`}>
               <div className="max-w-4xl mx-auto flex gap-5 md:gap-8 text-base">
                 
@@ -187,7 +182,6 @@ const ChatArea = ({ messages, isLoading }) => {
 
                 {/* Content Area */}
                 <div className="relative flex w-full flex-col gap-3 leading-relaxed text-slate-700">
-                  {/* User name header */}
                   <div className="font-bold text-sm tracking-wide text-slate-900 mb-1">
                     {msg.role === 'user' ? 'You' : 'Aquila AI'}
                   </div>
@@ -198,45 +192,65 @@ const ChatArea = ({ messages, isLoading }) => {
                       dangerouslySetInnerHTML={{ __html: formatText(msg.text) }} 
                     />
                   )}
+
+                  {/* 🌟 FEATURE 1: CITATION UI */}
+                  {msg.citations && msg.role === 'assistant' && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 text-blue-700 rounded-lg text-xs font-medium w-fit">
+                      <Database size={13} className="opacity-70" />
+                      <span>{msg.citations}</span>
+                    </div>
+                  )}
+
                   {msg.vegaChart && <VegaChart spec={msg.vegaChart} />}
                   {msg.tableData && <DataTable data={msg.tableData} />}
+
+                  {/* 🌟 FEATURE 2: FOLLOW-UP QUERIES UI */}
+                  {msg.follow_up && msg.follow_up.length > 0 && msg.role === 'assistant' && (
+                    <div className="mt-5 pt-4 border-t border-slate-100/80">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                        Suggested Follow-ups
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {msg.follow_up.map((query, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => onFollowUpClick(query)}
+                            className="flex items-center gap-1.5 text-xs font-medium bg-white text-slate-600 border border-slate-200 rounded-full px-3.5 py-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                          >
+                            <Search size={12} className="text-slate-400 group-hover:text-blue-500" /> {query}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ))
         )}
 
-        {/* ======================================= */}
-        {/* PREMIUM LOADING ANIMATION WITH FILLERS  */}
-        {/* ======================================= */}
+        {/* Loading State... */}
         {isLoading && (
           <div className="w-full py-8 px-4 bg-white border-y border-slate-100 shadow-[0_4px_20px_-15px_rgba(0,0,0,0.05)]">
             <div className="max-w-4xl mx-auto flex gap-5 md:gap-8">
-              
               <div className="flex flex-col relative items-end shrink-0 mt-1">
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700 shadow-lg border border-blue-500 animate-pulse">
                    <Sparkles size={20} className="text-white" />
                 </div>
               </div>
-
               <div className="flex items-center gap-3">
-                {/* 🔥 NAYA: Ab static "Analyzing data" nahi, balki App.jsx se aane wala smart text dikhega */}
                 <span className="text-slate-600 font-semibold text-[15px] tracking-wide animate-pulse">
                   {typeof isLoading === 'string' ? isLoading : "Analyzing data..."}
                 </span>
-                
-                {/* Bouncing Dots Effect */}
                 <div className="flex gap-1.5 mt-1">
                   <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0ms', animationDuration: '1s'}}></div>
                   <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '150ms', animationDuration: '1s'}}></div>
                   <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '300ms', animationDuration: '1s'}}></div>
                 </div>
               </div>
-
             </div>
           </div>
         )}
-        
         <div ref={messagesEndRef} className="h-10" />
       </div>
     </div>

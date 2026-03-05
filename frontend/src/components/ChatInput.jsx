@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, MicOff } from 'lucide-react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
-const ChatInput = ({ onSend, disabled }) => {
+const ChatInput = ({ onSend, disabled, onMicClick }) => {
   const [input, setInput] = useState("");
+  const textareaRef = useRef(null); // 🔥 Naya: Textarea ko control karne ke liye
   const {
     transcript,
     listening,
@@ -20,6 +21,10 @@ const ChatInput = ({ onSend, disabled }) => {
       onSend(input);
       setInput("");
       resetTranscript();
+      // 🔥 Send hone ke baad box ko wapas chota karne ke liye
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '52px';
+      }
     }
   };
 
@@ -31,6 +36,11 @@ const ChatInput = ({ onSend, disabled }) => {
   };
 
   const toggleListening = () => {
+    // Agar onMicClick prop aayi hai (Robot UI open karne ke liye), toh pehle use call karein
+    if (onMicClick) {
+      onMicClick();
+    }
+    
     if (listening) {
       SpeechRecognition.stopListening();
     } else {
@@ -39,28 +49,31 @@ const ChatInput = ({ onSend, disabled }) => {
     }
   };
 
+  // 🔥 Naya: Height aur Scroll control karne ka logic
+  const handleInput = (e) => {
+    setInput(e.target.value);
+    e.target.style.height = "52px"; // Pehle reset karein (taaki delete karne par chota ho sake)
+    e.target.style.height = `${e.target.scrollHeight}px`; // Phir content ke hisaab se height set karein
+  };
+
   return (
-    // Naya Light Theme Container
     <div className="absolute bottom-0 left-0 w-full border-t border-slate-200 bg-white p-4">
       <div className="max-w-4xl mx-auto relative flex items-center">
         <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Ask Aquila AI..."
           rows={1}
           disabled={disabled}
-          // Premium Input Field Styling
-          className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-hidden shadow-sm hover:border-slate-300"
-          style={{ minHeight: '52px', maxHeight: '200px' }}
-          onInput={(e) => {
-            e.target.style.height = "auto";
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
+          // 🔥 Fix: overflow-hidden hataya, overflow-y-auto aur scrollbar-thin lagaya
+          className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-y-auto scrollbar-thin shadow-sm hover:border-slate-300"
+          // 🔥 Fix: maxHeight 150px ki (approx 4-5 lines) taaki uske baad scroll aaye
+          style={{ minHeight: '52px', maxHeight: '150px' }}
         />
         
         <div className="absolute right-2 flex items-center gap-1.5">
-           {/* Mic Button */}
            {browserSupportsSpeechRecognition && (
             <button
               onClick={toggleListening}
@@ -76,7 +89,6 @@ const ChatInput = ({ onSend, disabled }) => {
             </button>
           )}
 
-          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={!input.trim() || disabled}
