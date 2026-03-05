@@ -143,6 +143,16 @@ function App() {
     setCurrentMessages([]);
   };
 
+  const deleteChat = (chatId) => {
+    // History se chat ko hata do
+    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+    
+    // Agar user wahi chat dekh raha tha jo delete hui hai, toh naya chat khol do
+    if (activeChatId === chatId) {
+      createNewChat();
+    }
+  };
+
   const loadChat = (id) => {
     if (currentMessages.length > 0) {
       const title = currentMessages[0].text.substring(0, 25) + "...";
