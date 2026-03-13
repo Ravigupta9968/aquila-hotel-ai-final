@@ -3,7 +3,7 @@ import { Plus, MessageSquare, LogOut, Settings, MoreHorizontal, Trash2, History 
 
 const Sidebar = ({ chatHistory, createNewChat, loadChat, deleteChat, currentUser }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showHistory, setShowHistory] = useState(false); // 🔥 Naya state history chupane ke liye
+  const [showHistory, setShowHistory] = useState(false); 
 
   return (
     <div className="w-[280px] bg-slate-50 flex flex-col h-full border-r border-slate-200 relative">
@@ -26,7 +26,7 @@ const Sidebar = ({ chatHistory, createNewChat, loadChat, deleteChat, currentUser
         </button>
       </div>
 
-      {/* Chat History List (Sirf tab dikhega jab showHistory true ho) */}
+      
       <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
         {showHistory && (
           <div className="animate-in slide-in-from-top-2 duration-300">
@@ -43,10 +43,10 @@ const Sidebar = ({ chatHistory, createNewChat, loadChat, deleteChat, currentUser
                     <MessageSquare size={16} className="text-slate-400 shrink-0" />
                     <span className="truncate">{chat.title}</span>
                   </button>
-                  {/* 🔥 Naya Delete Button (Hover par dikhega) */}
+                  
                   <button 
                     onClick={(e) => {
-                      e.stopPropagation(); // Chat load hone se rokne ke liye
+                      e.stopPropagation(); 
                       deleteChat(chat.id);
                     }}
                     className="absolute right-2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"

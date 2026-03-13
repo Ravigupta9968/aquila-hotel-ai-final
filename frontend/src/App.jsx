@@ -12,7 +12,6 @@ const IMG_THINKING = "/robot-thinking.png";
 const IMG_SPEAKING = "/robot-speaking.png";  
 
 
-// ==============================================
 const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
   const isSpeaking = status === 'Speaking...';
   const isProcessing = status === 'Processing...' || status === 'Reviewing Data...';
@@ -54,19 +53,19 @@ const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
           isProcessing ? 'bg-blue-600 opacity-20 scale-100' : 'bg-transparent'
         }`}></div>
         
-        {/* ============ TRANSPARENT ROBOT IMAGES (z-10) ============ */}
+        
         <img src={IMG_IDLE} alt="AI Idle" className={`absolute w-full h-[85%] object-contain object-bottom transition-opacity duration-500 ease-in-out z-10 ${isIdle ? 'opacity-100' : 'opacity-0'}`} />
         <img src={IMG_LISTENING} alt="AI Listening" className={`absolute w-full h-[85%] object-contain object-bottom transition-opacity duration-500 ease-in-out z-10 ${isListening ? 'opacity-100' : 'opacity-0'}`} />
         <img src={IMG_THINKING} alt="AI Thinking" className={`absolute w-full h-[85%] object-contain object-bottom transition-opacity duration-500 ease-in-out z-10 ${isProcessing ? 'opacity-100' : 'opacity-0'}`} />
         <img src={IMG_SPEAKING} alt="AI Speaking" className={`absolute w-full h-[85%] object-contain object-bottom transition-opacity duration-500 ease-in-out z-10 ${isSpeaking ? 'opacity-100' : 'opacity-0'}`} />
 
 
-        {/* 🔥 EFFECT 2: PROCESSING BLUE BLINK (Robot ke Sir (Head) ke Upar - z-20) */}
+        
         <div className={`absolute top-[18%] left-1/2 -translate-x-1/2 z-20 w-32 h-24 bg-blue-500/60 blur-2xl rounded-full animate-pulse pointer-events-none transition-opacity duration-300 ${
            isProcessing ? 'opacity-100' : 'opacity-0'
         }`}></div>
 
-        {/* 🔥 EFFECT 3: SPEAKING GREEN WAVES (Robot ke Gale par - z-[100]) */}
+        
         <div className={`absolute top-[60%] left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center gap-1.5 transition-all duration-300 ${isSpeaking ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}>
            <div className="absolute w-32 h-16 bg-emerald-400/50 blur-2xl rounded-full pointer-events-none"></div>
            
@@ -79,7 +78,7 @@ const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
 
       </div>
 
-      {/* Real Wave Animation CSS */}
+    
       <style>{`
         @keyframes eq {
           0% { transform: scaleY(0.4); opacity: 0.7; }
@@ -87,7 +86,6 @@ const RealisticAiAvatar = ({ status, onClick, readCountdown }) => {
         }
       `}</style>
 
-      {/* Tap Info Overlay */}
       <div className="absolute bottom-20 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/80 text-white px-5 py-2 rounded-full text-[11px] font-bold backdrop-blur-md z-[200] whitespace-nowrap pointer-events-none tracking-wider uppercase">
         Tap Anywhere to Interact
       </div>
@@ -144,10 +142,9 @@ function App() {
   };
 
   const deleteChat = (chatId) => {
-    // History se chat ko hata do
+   
     setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
     
-    // Agar user wahi chat dekh raha tha jo delete hui hai, toh naya chat khol do
     if (activeChatId === chatId) {
       createNewChat();
     }
@@ -516,9 +513,6 @@ function App() {
         )}
       </div>
 
-      {/* ============================================== */}
-      {/* NEW ULTRA-REALISTIC FULL-SCREEN ROBOT PANEL  */}
-      {/* ============================================== */}
       <div className={`fixed top-0 right-0 h-full w-[320px] sm:w-[400px] bg-white border-l border-slate-200 shadow-2xl z-50 transform transition-transform duration-500 ease-out flex flex-col ${speechModeOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           
           <button 
@@ -538,7 +532,6 @@ function App() {
              <RealisticAiAvatar status={voiceStatus} onClick={toggleVoiceModeListening} readCountdown={readCountdown} />
           </div>
 
-          {/* 🔥 FIX: Glitch hatane ke liye heavy CSS animations ('animate-in', 'fade-in') hata di hain */}
           {transcript && (
             <div className="absolute bottom-10 left-6 right-6 z-50 px-5 py-3 bg-slate-900/80 backdrop-blur-md rounded-2xl text-center shadow-lg border border-white/20">
                <p className="text-[14px] text-white font-medium leading-relaxed italic">

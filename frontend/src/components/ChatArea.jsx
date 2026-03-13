@@ -193,7 +193,7 @@ const ChatArea = ({ messages, isLoading, onFollowUpClick }) => {
                     />
                   )}
 
-                  {/* 🌟 FEATURE 1: CITATION UI */}
+                  {/*  FEATURE 1: CITATION UI */}
                   {msg.citations && msg.role === 'assistant' && (
                     <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50/80 border border-blue-100 text-blue-700 rounded-lg text-xs font-medium w-fit">
                       <Database size={13} className="opacity-70" />
@@ -204,7 +204,7 @@ const ChatArea = ({ messages, isLoading, onFollowUpClick }) => {
                   {msg.vegaChart && <VegaChart spec={msg.vegaChart} />}
                   {msg.tableData && <DataTable data={msg.tableData} />}
 
-                  {/* 🌟 FEATURE 2: FOLLOW-UP QUERIES UI */}
+                  {/*  FEATURE 2: FOLLOW-UP QUERIES UI */}
                   {msg.follow_up && msg.follow_up.length > 0 && msg.role === 'assistant' && (
                     <div className="mt-5 pt-4 border-t border-slate-100/80">
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
@@ -229,7 +229,6 @@ const ChatArea = ({ messages, isLoading, onFollowUpClick }) => {
           ))
         )}
 
-        {/* Loading State... */}
         {isLoading && (
           <div className="w-full py-8 px-4 bg-white border-y border-slate-100 shadow-[0_4px_20px_-15px_rgba(0,0,0,0.05)]">
             <div className="max-w-4xl mx-auto flex gap-5 md:gap-8">

@@ -4,7 +4,7 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 
 const ChatInput = ({ onSend, disabled, onMicClick }) => {
   const [input, setInput] = useState("");
-  const textareaRef = useRef(null); // 🔥 Naya: Textarea ko control karne ke liye
+  const textareaRef = useRef(null); 
   const {
     transcript,
     listening,
@@ -21,7 +21,7 @@ const ChatInput = ({ onSend, disabled, onMicClick }) => {
       onSend(input);
       setInput("");
       resetTranscript();
-      // 🔥 Send hone ke baad box ko wapas chota karne ke liye
+      
       if (textareaRef.current) {
         textareaRef.current.style.height = '52px';
       }
@@ -36,7 +36,6 @@ const ChatInput = ({ onSend, disabled, onMicClick }) => {
   };
 
   const toggleListening = () => {
-    // Agar onMicClick prop aayi hai (Robot UI open karne ke liye), toh pehle use call karein
     if (onMicClick) {
       onMicClick();
     }
@@ -49,11 +48,11 @@ const ChatInput = ({ onSend, disabled, onMicClick }) => {
     }
   };
 
-  // 🔥 Naya: Height aur Scroll control karne ka logic
+  
   const handleInput = (e) => {
     setInput(e.target.value);
-    e.target.style.height = "52px"; // Pehle reset karein (taaki delete karne par chota ho sake)
-    e.target.style.height = `${e.target.scrollHeight}px`; // Phir content ke hisaab se height set karein
+    e.target.style.height = "52px"; 
+    e.target.style.height = `${e.target.scrollHeight}px`; 
   };
 
   return (
@@ -67,9 +66,9 @@ const ChatInput = ({ onSend, disabled, onMicClick }) => {
           placeholder="Ask Aquila AI..."
           rows={1}
           disabled={disabled}
-          // 🔥 Fix: overflow-hidden hataya, overflow-y-auto aur scrollbar-thin lagaya
+          
           className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-y-auto scrollbar-thin shadow-sm hover:border-slate-300"
-          // 🔥 Fix: maxHeight 150px ki (approx 4-5 lines) taaki uske baad scroll aaye
+          
           style={{ minHeight: '52px', maxHeight: '150px' }}
         />
         
