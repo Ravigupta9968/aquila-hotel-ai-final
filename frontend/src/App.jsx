@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
 import Login from './components/Login';
+import 'regenerator-runtime/runtime';
 import { Menu, Radio, Hotel, Mic, MicOff, X, Power, Zap, Brain } from 'lucide-react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
