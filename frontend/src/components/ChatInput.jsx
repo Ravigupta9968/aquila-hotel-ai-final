@@ -1,31 +1,61 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, MicOff } from 'lucide-react';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const ChatInput = ({ onSend, disabled, isHandsFree }) => {
   const [input, setInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [browserSupportsSpeech, setBrowserSupportsSpeech] = useState(true);
   const textareaRef = useRef(null); 
+  const recognitionRef = useRef(null);
 
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
-
-
+ 
   useEffect(() => {
-    if (!isHandsFree && listening && transcript) {
-      setInput(transcript);
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true; 
+      recognition.interimResults = true;
+      recognition.lang = 'en-IN';
+
+      recognition.onresult = (event) => {
+        let currentTrans = "";
+        for (let i = 0; i < event.results.length; ++i) {
+          currentTrans += event.results[i][0].transcript;
+        }
+        setInput(currentTrans);
+        
+        
+        if (textareaRef.current) {
+          textareaRef.current.style.height = '52px';
+          textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error("ChatInput Speech Error:", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } else {
+      setBrowserSupportsSpeech(false);
     }
-  }, [transcript, listening, isHandsFree]);
+  }, []);
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
       onSend(input);
       setInput("");
-      resetTranscript();
-      SpeechRecognition.stopListening(); 
+      
+      
+      if (isListening) {
+        try { recognitionRef.current?.stop(); } catch(e) {}
+        setIsListening(false);
+      }
       
       if (textareaRef.current) {
         textareaRef.current.style.height = '52px';
@@ -42,12 +72,17 @@ const ChatInput = ({ onSend, disabled, isHandsFree }) => {
 
   
   const toggleListening = () => {
-    if (listening) {
-      SpeechRecognition.stopListening();
+    if (isListening) {
+      try { recognitionRef.current?.stop(); } catch(e) {}
+      setIsListening(false);
     } else {
-      resetTranscript();
-      
-      SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
+      setInput(""); 
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error("Mic start error", e);
+      }
     }
   };
 
@@ -65,7 +100,7 @@ const ChatInput = ({ onSend, disabled, isHandsFree }) => {
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Ask Aquila AI..."
+          placeholder="Ask eGlobe AI..."
           rows={1}
           disabled={disabled}
           className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-y-auto scrollbar-thin shadow-sm hover:border-slate-300"
@@ -74,19 +109,19 @@ const ChatInput = ({ onSend, disabled, isHandsFree }) => {
         
         <div className="absolute right-2 flex items-center gap-1.5">
            
-           {/* 🌟 FIX 2: CONDITIONAL MIC BUTTON - Hands-Free ON then hide button */}
-           {browserSupportsSpeechRecognition && !isHandsFree && (
+           
+           {browserSupportsSpeech && !isHandsFree && (
             <button
               onClick={toggleListening}
               disabled={disabled}
               className={`p-2.5 rounded-xl transition-all ${
-                listening 
-                  ? 'text-red-500 bg-red-50 shadow-inner' 
+                isListening 
+                  ? 'text-red-500 bg-red-50 shadow-inner animate-pulse' 
                   : 'text-slate-400 hover:bg-slate-100 hover:text-blue-600'
               }`}
-              title={listening ? "Stop Voice Typing" : "Start Voice Typing"}
+              title={isListening ? "Stop Voice Typing" : "Start Voice Typing"}
             >
-              {listening ? <MicOff size={20} /> : <Mic size={20} />}
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
           )}
 
@@ -104,7 +139,7 @@ const ChatInput = ({ onSend, disabled, isHandsFree }) => {
         </div>
       </div>
       <div className="text-[11px] text-center font-medium text-slate-400 mt-3">
-        Aquila Intelligence may produce inaccurate results. Please verify important business data.
+        eGlobe Intelligence may produce inaccurate results. Please verify important business data.
       </div>
     </div>
   );

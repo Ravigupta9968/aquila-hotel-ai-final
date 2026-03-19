@@ -1,11 +1,10 @@
+import 'regenerator-runtime/runtime';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatArea from './components/ChatArea';
 import ChatInput from './components/ChatInput';
 import Login from './components/Login';
-import 'regenerator-runtime/runtime';
 import { Menu, Radio, Hotel, Mic, MicOff, X, Power, Zap, Brain } from 'lucide-react';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const IMG_IDLE = "/robot-idle.png";
 const IMG_LISTENING = "/robot-listening.png";
@@ -61,11 +60,8 @@ const RealisticAiAvatar = ({ status, onClick }) => {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
   const [isConnected, setIsConnected] = useState(false);
-
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
@@ -78,8 +74,6 @@ function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [isHandsFree, setIsHandsFree] = useState(true);
 
-  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
-
   const currentAudioRef = useRef(null);
   const lastFetchedDataRef = useRef(null);
   const speechModeOpenRef = useRef(false);
@@ -87,6 +81,7 @@ function App() {
   const isHandsFreeRef = useRef(isHandsFree);
   const voiceStatusRef = useRef(voiceStatus);
   const isLoadingRef = useRef(isLoading);
+  
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
   useEffect(() => { isHandsFreeRef.current = isHandsFree; }, [isHandsFree]);
   useEffect(() => { voiceStatusRef.current = voiceStatus; }, [voiceStatus]);
@@ -94,7 +89,104 @@ function App() {
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+
+  const [transcript, setTranscript] = useState("");
+  const recognitionRef = useRef(null);
+  const shouldListenRef = useRef(false);
+
+  const initSpeechRecognition = useCallback(() => {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return null;
+
+    const recognition = new SpeechRec();
+    recognition.continuous = false; 
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+
+    recognition.onresult = (event) => {
+      let currentTrans = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        currentTrans += event.results[i][0].transcript;
+      }
+      setTranscript(currentTrans);
+    };
+
+    
+    recognition.onend = () => {
+      if (shouldListenRef.current && !isMutedRef.current) {
+        setTimeout(() => {
+          try {
+            recognitionRef.current?.start();
+          } catch (e) { /* Ignore already started */ }
+        }, 200);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === 'not-allowed') {
+        shouldListenRef.current = false;
+        console.error("Mic permission denied");
+      }
+    };
+
+    return recognition;
+  }, []);
+
+  useEffect(() => {
+    recognitionRef.current = initSpeechRecognition();
+  }, [initSpeechRecognition]);
+
+  const safeStartListening = useCallback(() => {
+    if (isMutedRef.current) return;
+    shouldListenRef.current = true;
+    try {
+      recognitionRef.current?.start();
+    } catch (e) {}
+  }, []);
+
+  const safeStopListening = useCallback(() => {
+    shouldListenRef.current = false; 
+    try {
+      recognitionRef.current?.stop();
+    } catch (e) {}
+  }, []);
+
+  const resetTranscript = useCallback(() => {
+    setTranscript("");
+    try {
+      recognitionRef.current?.stop(); 
+    } catch(e) {}
+  }, []);
+
   
+  const USE_GROQ_STT = false; 
+  const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+
+  const processAudioWithGroq = async (audioBlob) => {
+    if (!USE_GROQ_STT || !GROQ_API_KEY) return null;
+    try {
+      const formData = new FormData();
+      formData.append("file", audioBlob, "audio.webm");
+      formData.append("model", "whisper-large-v3");
+      formData.append("language", "en");
+
+      const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${GROQ_API_KEY}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.text;
+      }
+    } catch (error) {
+      console.error("Groq STT failed, falling back to Native STT", error);
+    }
+    return null; 
+  };
+  
+
   const PROCESSING_PHRASES = [
     "Hold on, pulling the data right now.",
     "Fetching the latest records, just a moment.",
@@ -107,23 +199,7 @@ function App() {
   const processingIndexRef = useRef(0);
   const isSpeakingProcessingRef = useRef(false);
   const micCooldownRef = useRef(false);
-  const safeStartListening = useCallback(() => {
-    if (browserSupportsSpeechRecognition && !isMutedRef.current) {
-      SpeechRecognition.startListening({
-        continuous: true,
-        language: 'en-IN',
-        interimResults: true,
-      });
-    }
-  }, [browserSupportsSpeechRecognition]);
 
-  const safeStopListening = useCallback(() => {
-    if (browserSupportsSpeechRecognition) {
-      SpeechRecognition.stopListening();
-    }
-  }, [browserSupportsSpeechRecognition]);
-
-  
   useEffect(() => {
     try {
       const savedSession = localStorage.getItem('eglobe_active_session');
@@ -139,7 +215,6 @@ function App() {
     }
   }, []);
 
-  
   useEffect(() => {
     let cancelled = false;
     const checkConnection = async () => {
@@ -166,7 +241,6 @@ function App() {
     setSpeechModeOpen(false);
     speechModeOpenRef.current = false;
     setIsHandsFree(false);
-    isHandsFreeRef.current = false;
     safeStopListening();
     
     if (currentAudioRef.current) {
@@ -234,7 +308,6 @@ function App() {
     setLoadingMessage("");
   }, []);
 
-  
   const speakTextVoiceModeFnRef = useRef(null);
 
   const finishSpeakingAndListen = useCallback((onEndCallback) => {
@@ -258,22 +331,28 @@ function App() {
   }, [resetTranscript, safeStartListening]);
 
   const runFallbackTTS = useCallback((text, onEndCallback) => {
-    safeStopListening();
+    safeStopListening(); 
     setVoiceStatus('Speaking...');
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.1;
-      utterance.onend = () => { finishSpeakingAndListen(onEndCallback); };
-      utterance.onerror = () => { finishSpeakingAndListen(onEndCallback); };
+      
+      
+      utterance.onend = () => { 
+        setTimeout(() => finishSpeakingAndListen(onEndCallback), 600); 
+      };
+      utterance.onerror = () => { 
+        setTimeout(() => finishSpeakingAndListen(onEndCallback), 600); 
+      };
       window.speechSynthesis.speak(utterance);
     } else {
-      finishSpeakingAndListen(onEndCallback);
+      setTimeout(() => finishSpeakingAndListen(onEndCallback), 600);
     }
   }, [safeStopListening, finishSpeakingAndListen]);
 
   const speakTextVoiceMode = useCallback(async (text, onEndCallback) => {
-    safeStopListening();
+    safeStopListening(); // Stop mic while speaking
 
     const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '');
     const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
@@ -307,12 +386,12 @@ function App() {
 
       audio.onplay = () => {
         setVoiceStatus('Speaking...');
-        safeStopListening();
       };
+      
+      
       audio.onended = () => {
-        
         URL.revokeObjectURL(audioUrl);
-        finishSpeakingAndListen(onEndCallback);
+        setTimeout(() => { finishSpeakingAndListen(onEndCallback); }, 600);
       };
       audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
@@ -328,12 +407,10 @@ function App() {
     }
   }, [safeStopListening, runFallbackTTS, finishSpeakingAndListen]);
 
-  
   useEffect(() => {
     speakTextVoiceModeFnRef.current = speakTextVoiceMode;
   }, [speakTextVoiceMode]);
 
- 
   const speakProcessingPhrase = useCallback(async (text, onDone) => {
     if (!text) { onDone?.(); return; }
     const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '');
@@ -349,9 +426,8 @@ function App() {
     }
 
     const onFinished = () => {
-      
       setVoiceStatus('Processing...');
-      onDone?.();
+      setTimeout(() => { onDone?.(); }, 600); 
     };
 
     if (!ELEVENLABS_API_KEY) {
@@ -403,7 +479,6 @@ function App() {
     }
   }, [safeStopListening]);
 
- 
   const speakNextProcessingPhrase = useCallback(() => {
     if (!isLoadingRef.current || isMutedRef.current) {
       isSpeakingProcessingRef.current = false;
@@ -417,7 +492,6 @@ function App() {
     processingIndexRef.current = idx + 1;
 
     speakProcessingPhrase(phrase, () => {
-      
       const gap = 5000 + Math.random() * 1000; 
       processingIntervalRef.current = setTimeout(() => {
         if (isLoadingRef.current) {
@@ -444,7 +518,6 @@ function App() {
     }
 
     if (!isMutedRef.current && initialSpeak) {
-      
       processingIntervalRef.current = setTimeout(() => {
         if (isLoadingRef.current) {
           speakNextProcessingPhrase();
@@ -454,7 +527,6 @@ function App() {
   
   }, [speakNextProcessingPhrase]);
 
-  
   useEffect(() => {
     if (isMuted || !isLoggedIn) {
       safeStopListening();
@@ -471,7 +543,6 @@ function App() {
     }
   }, [isMuted, voiceStatus, isLoggedIn, speechModeOpen, isHandsFree, safeStartListening, safeStopListening]);
 
-  
   useEffect(() => {
     if (!transcript) return;
     if (micCooldownRef.current) return;
@@ -491,14 +562,11 @@ function App() {
         resetTranscript();
         speakTextVoiceMode("Yes, I am listening. How can I help?", null);
       }
-     
       return;
     }
 
-    
     if (speechModeOpenRef.current && voiceStatusRef.current === 'Listening...') {
 
-     
       if (['thank you', 'stop', 'close', 'exit', 'nothing', 'never mind', 'never'].some(w => lowerTrans.includes(w))) {
         safeStopListening();
         speakTextVoiceMode("Alright, going back to sleep mode. Feel free to say Hey eGlobe or hello robot anytime.", () => {
@@ -511,7 +579,6 @@ function App() {
         return;
       }
 
-      
       if (lastFetchedDataRef.current && ['explain', 'read', 'yes', 'batao', 'continue', 'haan'].some(w => lowerTrans.includes(w))) {
         safeStopListening();
         const textToRead = lastFetchedDataRef.current;
@@ -521,7 +588,6 @@ function App() {
         return;
       }
 
-      
       if (lastFetchedDataRef.current && ['no', 'next', 'skip', 'leave it', 'agle'].some(w => lowerTrans.includes(w))) {
         safeStopListening();
         lastFetchedDataRef.current = null;
@@ -530,37 +596,21 @@ function App() {
         return;
       }
 
-      
       const timeoutId = setTimeout(() => {
         const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
         if (words.length >= 4 && !isLoadingRef.current && !micCooldownRef.current) {
           safeStopListening();
           processVoicePanelCommand(transcript);
         }
-        
       }, 3000);
       return () => clearTimeout(timeoutId);
     }
-  
   }, [transcript]);
 
-  
   const extractSpokenSummary = (rawText) => {
-    const plain = rawText
-      .replace(/<[^>]*>?/gm, '')
-      .replace(/\*\*/g, '')
-      .replace(/\n+/g, ' ')
-      .trim();
-
-    
+    const plain = rawText.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '').replace(/\n+/g, ' ').trim();
     const sentences = plain.match(/[^.!?]+[.!?]+/g) || [];
-
-    if (sentences.length === 0) {
-      
-      return plain.substring(0, 120).trim();
-    }
-
-    
+    if (sentences.length === 0) return plain.substring(0, 120).trim();
     return sentences.slice(0, 2).join(' ').trim();
   };
 
@@ -593,7 +643,6 @@ function App() {
       lastFetchedDataRef.current = rawText;
       const preview = extractSpokenSummary(rawText);
       speakTextVoiceMode(preview, () => {
-        
         speakTextVoiceModeFnRef.current?.(
           "Would you like me to continue reading, or shall we move to your next query?",
           null
@@ -614,7 +663,6 @@ function App() {
     const updatedMessages = [...currentMessages, { role: 'user', text: text }];
     setCurrentMessages(updatedMessages);
 
-    
     startProcessingFeedback(false);
 
     try {
@@ -637,7 +685,6 @@ function App() {
   useEffect(() => {
     speechModeOpenRef.current = speechModeOpen;
     if (!speechModeOpen) {
-      
       setVoiceStatus('Idle');
       window.speechSynthesis.cancel();
       if (currentAudioRef.current) {
@@ -646,7 +693,6 @@ function App() {
       }
       stopProcessingFeedback();
     }
-    
   }, [speechModeOpen, stopProcessingFeedback]);
 
   if (!isLoggedIn) {
