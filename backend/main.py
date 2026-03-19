@@ -8,14 +8,8 @@ import os
 import json
 from dotenv import load_dotenv
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-# Snowflake Config
-SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
-SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_TOKEN")
-AGENT_DB = os.getenv("AGENT_DB", "CAREONE_CROWNPALACE")
-AGENT_SCHEMA = os.getenv("AGENT_SCHEMA", "DATA")
-AGENT_NAME = os.getenv("AGENT_NAME", "CAREONE_HOTEL_AGENT")
+# Load .env file
+load_dotenv()
 
 app = FastAPI()
 
@@ -28,11 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Snowflake Config
+SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
+SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_TOKEN")
+AGENT_DB = os.getenv("AGENT_DB", "CAREONE_CROWNPALACE")
+AGENT_SCHEMA = os.getenv("AGENT_SCHEMA", "DATA")
+AGENT_NAME = os.getenv("AGENT_NAME", "CAREONE_HOTEL_AGENT")
 
-
-@app.get("/")
-def home():
-    return {"status": "Backend is running!"}
 # Debug: Print config on startup
 print("=" * 50)
 print("🔧 BACKEND CONFIGURATION:")
@@ -42,6 +38,8 @@ print(f"   AGENT_DB: {AGENT_DB}")
 print(f"   AGENT_SCHEMA: {AGENT_SCHEMA}")
 print(f"   AGENT_NAME: {AGENT_NAME}")
 print("=" * 50)
+
+
 
 
 class Message(BaseModel):
@@ -211,4 +209,4 @@ async def chat_with_agent(request: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)  #uvicorn main:app --reload --host 0.0.0.0 --port 8000

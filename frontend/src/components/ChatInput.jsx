@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, MicOff } from 'lucide-react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
-const ChatInput = ({ onSend, disabled }) => {
+const ChatInput = ({ onSend, disabled, isHandsFree }) => {
   const [input, setInput] = useState("");
+  const textareaRef = useRef(null); 
+
   const {
     transcript,
     listening,
@@ -11,15 +13,23 @@ const ChatInput = ({ onSend, disabled }) => {
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
 
+
   useEffect(() => {
-    if (transcript) setInput(transcript);
-  }, [transcript]);
+    if (!isHandsFree && listening && transcript) {
+      setInput(transcript);
+    }
+  }, [transcript, listening, isHandsFree]);
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
       onSend(input);
       setInput("");
       resetTranscript();
+      SpeechRecognition.stopListening(); 
+      
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '52px';
+      }
     }
   };
 
@@ -30,38 +40,42 @@ const ChatInput = ({ onSend, disabled }) => {
     }
   };
 
+  
   const toggleListening = () => {
     if (listening) {
       SpeechRecognition.stopListening();
     } else {
       resetTranscript();
-      SpeechRecognition.startListening({ continuous: false, language: 'en-IN' });
+      
+      SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
     }
   };
 
+  const handleInput = (e) => {
+    setInput(e.target.value);
+    e.target.style.height = "52px"; 
+    e.target.style.height = `${e.target.scrollHeight}px`; 
+  };
+
   return (
-    // Naya Light Theme Container
     <div className="absolute bottom-0 left-0 w-full border-t border-slate-200 bg-white p-4">
       <div className="max-w-4xl mx-auto relative flex items-center">
         <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInput}
           onKeyDown={handleKeyDown}
           placeholder="Ask Aquila AI..."
           rows={1}
           disabled={disabled}
-          // Premium Input Field Styling
-          className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-hidden shadow-sm hover:border-slate-300"
-          style={{ minHeight: '52px', maxHeight: '200px' }}
-          onInput={(e) => {
-            e.target.style.height = "auto";
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
+          className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-5 pr-24 text-slate-800 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 transition-all overflow-y-auto scrollbar-thin shadow-sm hover:border-slate-300"
+          style={{ minHeight: '52px', maxHeight: '150px' }}
         />
         
         <div className="absolute right-2 flex items-center gap-1.5">
-           {/* Mic Button */}
-           {browserSupportsSpeechRecognition && (
+           
+           {/* 🌟 FIX 2: CONDITIONAL MIC BUTTON - Hands-Free ON then hide button */}
+           {browserSupportsSpeechRecognition && !isHandsFree && (
             <button
               onClick={toggleListening}
               disabled={disabled}
@@ -70,13 +84,12 @@ const ChatInput = ({ onSend, disabled }) => {
                   ? 'text-red-500 bg-red-50 shadow-inner' 
                   : 'text-slate-400 hover:bg-slate-100 hover:text-blue-600'
               }`}
-              title={listening ? "Stop listening" : "Start speaking"}
+              title={listening ? "Stop Voice Typing" : "Start Voice Typing"}
             >
               {listening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
           )}
 
-          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={!input.trim() || disabled}
