@@ -60,7 +60,7 @@ const RealisticAiAvatar = ({ status, onClick }) => {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -89,7 +89,77 @@ function App() {
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+  // --- NAYA ELEVENLABS STT & RECORDING LOGIC START ---
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioStreamRef = useRef(null);
 
+  const processAudioWithElevenLabs = async (audioBlob) => {
+    const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    if (!ELEVENLABS_API_KEY) return null;
+    try {
+      const formData = new FormData();
+      // File bhej rahe hain ElevenLabs API ko
+      formData.append("file", audioBlob, "audio.webm");
+      formData.append("model_id", "scribe_v2");
+
+      const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+        method: "POST",
+        headers: { "xi-api-key": ELEVENLABS_API_KEY },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.text;
+      }
+    } catch (error) {
+      console.error("ElevenLabs STT error:", error);
+    }
+    return null; 
+  };
+
+  const startRecordingAudio = useCallback(async () => {
+    try {
+      if (!audioStreamRef.current) {
+        audioStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") return;
+      
+      const recorder = new MediaRecorder(audioStreamRef.current);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+    } catch (err) {
+      console.error("Mic error for recording:", err);
+    }
+  }, []);
+
+  const stopRecordingAndGetText = useCallback(() => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const sttText = await processAudioWithElevenLabs(audioBlob);
+          resolve(sttText);
+        };
+        mediaRecorderRef.current.stop();
+      } else {
+        resolve(null);
+      }
+    });
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.onstop = null; 
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+  // --- NAYA ELEVENLABS STT & RECORDING LOGIC END ---
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef(null);
   const shouldListenRef = useRef(false);
@@ -322,13 +392,16 @@ function App() {
     if (speechModeOpenRef.current && !isMutedRef.current) {
       setVoiceStatus('Listening...');
       safeStartListening();
+      startRecordingAudio(); // <--- Yahan recording start hogi
     } else if (isHandsFreeRef.current && !isMutedRef.current) {
       setVoiceStatus('Idle');
       safeStartListening();
+      cancelRecording(); // <--- Wake word mode me bas mic sunega, record nahi karega
     } else {
       setVoiceStatus('Idle');
+      cancelRecording(); // <--- Recording cancel
     }
-  }, [resetTranscript, safeStartListening]);
+  }, [resetTranscript, safeStartListening, startRecordingAudio, cancelRecording]);
 
   const runFallbackTTS = useCallback((text, onEndCallback) => {
     safeStopListening(); 
@@ -336,7 +409,21 @@ function App() {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.1;
+      const voices = window.speechSynthesis.getVoices();
+// Browser mein se female voice dhoondhne ka logic
+const femaleVoice = voices.find(voice => 
+  voice.name.includes('Female') || 
+  voice.name.includes('Woman') || 
+  voice.name.includes('Zira') || 
+  voice.name.includes('Samantha') || 
+  voice.name.includes('Google UK English Female')
+);
+
+if (femaleVoice) {
+  utterance.voice = femaleVoice;
+}
+////
+      utterance.rate = 1.35;//(speed)
       
       
       utterance.onend = () => { 
@@ -356,7 +443,8 @@ function App() {
 
     const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '');
     const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-    const VOICE_ID = "ErXwobaYiN019PkySvjV";
+    //const VOICE_ID = "ErXwobaYiN019PkySvjV"; (male)
+    const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
@@ -374,10 +462,10 @@ function App() {
         method: 'POST',
         headers: { 'Accept': 'audio/mpeg', 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: cleanText,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: { stability: 0.45, similarity_boost: 0.85, style: 0.4, use_speaker_boost: true }
-        })
+  text: cleanText,
+  model_id: "eleven_turbo_v2_5", // Sabse fast model
+  voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.0, use_speaker_boost: true }
+})
       });
       if (!response.ok) throw new Error("TTS Error");
       const audioUrl = URL.createObjectURL(await response.blob());
@@ -415,7 +503,8 @@ function App() {
     if (!text) { onDone?.(); return; }
     const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '');
     const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-    const VOICE_ID = "ErXwobaYiN019PkySvjV";
+    // const VOICE_ID = "ErXwobaYiN019PkySvjV";  (male)
+    const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
     safeStopListening();
     setVoiceStatus('Speaking...');
@@ -558,7 +647,7 @@ function App() {
         safeStopListening();
         speechModeOpenRef.current = true;
         setSpeechModeOpen(true);
-        setSidebarOpen(false);
+        //setSidebarOpen(false);
         resetTranscript();
         speakTextVoiceMode("Yes, I am listening. How can I help?", null);
       }
@@ -572,7 +661,7 @@ function App() {
         speakTextVoiceMode("Alright, going back to sleep mode. Feel free to say Hey eGlobe or hello robot anytime.", () => {
           speechModeOpenRef.current = false;
           setSpeechModeOpen(false);
-          setSidebarOpen(true);
+          //setSidebarOpen(true);
           setVoiceStatus('Idle');
           resetTranscript();
         });
@@ -596,13 +685,24 @@ function App() {
         return;
       }
 
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
-        if (words.length >= 4 && !isLoadingRef.current && !micCooldownRef.current) {
+        
+        // Background noise bachane ke liye kam se kam 3 words hone chahiye
+        if (words.length >= 3 && !isLoadingRef.current && !micCooldownRef.current) {
           safeStopListening();
-          processVoicePanelCommand(transcript);
+          setVoiceStatus('Processing Audio...'); // UI pe dikhega
+          
+          // Yahan audio stop hogi aur ElevenLabs se text aayega
+          const elevenLabsText = await stopRecordingAndGetText();
+          
+          // Agar ElevenLabs ne perfect text diya toh wo use karein, warna native STT ka transcript
+          const finalCommand = elevenLabsText || transcript;
+          
+          processVoicePanelCommand(finalCommand);
         }
-      }, 3000);
+      }, 2500); // 2.5 seconds ki silence matlab query khatam
+
       return () => clearTimeout(timeoutId);
     }
   }, [transcript]);
@@ -705,15 +805,16 @@ function App() {
       <div className={`fixed md:relative z-40 h-full shrink-0 transition-all duration-300 ease-in-out bg-white overflow-hidden ${sidebarOpen ? 'w-[280px] border-r border-slate-200' : 'w-0 border-r-0'}`}>
         <div className="w-[280px] h-full relative">
 
-           {sidebarOpen && speechModeOpen && (
-             <button
-               onClick={() => setSidebarOpen(false)}
-               className="absolute top-1 right-1 z-[9999] p-1.5 bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 rounded-lg transition-all shadow-md cursor-pointer flex items-center justify-center"
-               title="Close Sidebar"
-             >
-               <X size={18} strokeWidth={2.5} />
-             </button>
-           )}
+           {/* Ab ye cross button har baar dikhega jab sidebar open hoga */}
+{sidebarOpen && (
+  <button
+    onClick={() => setSidebarOpen(false)}
+    className="absolute top-1 right-1 z-[9999] p-1.5 bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 rounded-lg transition-all shadow-md cursor-pointer flex items-center justify-center"
+    title="Close Sidebar"
+  >
+    <X size={18} strokeWidth={2.5} />
+  </button>
+)}
 
            <Sidebar chatHistory={chatHistory} createNewChat={createNewChat} loadChat={loadChat} deleteChat={deleteChat} currentUser={currentUser} onLogout={handleLogout} />
         </div>
@@ -724,21 +825,20 @@ function App() {
         <header className="h-[64px] border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 bg-white shadow-sm z-10">
             <div className="flex items-center gap-4">
 
-                {!sidebarOpen && (
-                  <button
-                    className="text-slate-500 hover:text-blue-600 hover:bg-slate-100 p-2 rounded-lg transition-all"
-                    onClick={() => setSidebarOpen(true)}
-                    title="Show Sidebar"
-                  >
-                      <Menu size={24} />
-                  </button>
-                )}
+                {/* Ye hamesha dikhega aur click karne par sidebar open karega */}
+<button
+  className="text-slate-500 hover:text-blue-600 hover:bg-slate-100 p-2 rounded-lg transition-all"
+  onClick={() => setSidebarOpen(true)}
+  title="Show Sidebar"
+>
+    <Menu size={24} />
+</button>
 
                 <div className="flex items-center gap-3 font-bold text-slate-800 tracking-tight transition-all">
                     <div className="p-1.5 bg-blue-50 rounded-lg border border-blue-100 shadow-inner">
                         <Hotel size={20} className="text-blue-600" />
                     </div>
-                    <span className="text-lg hidden sm:block">eGlobe Grand Suites</span>
+                    <span className="text-lg hidden sm:block">Aquila Grand Suites</span>
                 </div>
             </div>
 
@@ -773,7 +873,7 @@ function App() {
                        if (!speechModeOpenRef.current) {
                          speechModeOpenRef.current = true;
                          setSpeechModeOpen(true);
-                         setSidebarOpen(false);
+                         //setSidebarOpen(false);
                          
                          setTimeout(() => {
                            speakTextVoiceMode("Yes, I am listening. How can I help?", null);
@@ -802,7 +902,7 @@ function App() {
               if (!speechModeOpenRef.current) {
                 speechModeOpenRef.current = true;
                 setSpeechModeOpen(true);
-                setSidebarOpen(false);
+                //setSidebarOpen(false);
                 setTimeout(() => {
                   speakTextVoiceMode("Yes, I am listening. How can I help?", null);
                 }, 300);
@@ -821,7 +921,7 @@ function App() {
              <button onClick={() => {
                  speechModeOpenRef.current = false;
                  setSpeechModeOpen(false);
-                 setSidebarOpen(true);
+                 //setSidebarOpen(true);
              }} className="p-3 rounded-full bg-white/90 hover:bg-red-50 text-slate-500 hover:text-red-600 transition-all shadow-xl backdrop-blur-md cursor-pointer border border-slate-200">
                 <X size={24} strokeWidth={2.5} />
              </button>
