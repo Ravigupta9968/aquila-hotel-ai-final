@@ -640,8 +640,14 @@ if (femaleVoice) {
     if (!speechModeOpenRef.current && isHandsFreeRef.current) {
       if (
         lowerTrans.includes('hey eglobe') ||
-        lowerTrans.includes('hii globe') ||
+        lowerTrans.includes('hey globe') ||
         lowerTrans.includes('hello robot') ||
+        lowerTrans.includes('high eglobe') ||
+        lowerTrans.includes('hii eglobe') ||
+        lowerTrans.includes('hey e globe') ||
+        lowerTrans.includes('hi globe') ||
+        lowerTrans.includes('hello AI') ||
+        lowerTrans.includes('hey igloo') ||
         lowerTrans.includes('hey iglobe')
       ) {
         safeStopListening();
@@ -656,7 +662,7 @@ if (femaleVoice) {
 
     if (speechModeOpenRef.current && voiceStatusRef.current === 'Listening...') {
 
-      if (['thank you', 'stop', 'close', 'exit', 'nothing', 'never mind', 'never'].some(w => lowerTrans.includes(w))) {
+      if (['thank you', 'stop', 'close', 'exit', 'nothing', 'never mind', 'never','No'].some(w => lowerTrans.includes(w))) {
         safeStopListening();
         speakTextVoiceMode("Alright, going back to sleep mode. Feel free to say Hey eGlobe or hello robot anytime.", () => {
           speechModeOpenRef.current = false;
@@ -701,7 +707,7 @@ if (femaleVoice) {
           
           processVoicePanelCommand(finalCommand);
         }
-      }, 2500); // 2.5 seconds ki silence matlab query khatam
+      }, 1500); // 1.5 seconds ki silence matlab query khatam
 
       return () => clearTimeout(timeoutId);
     }
