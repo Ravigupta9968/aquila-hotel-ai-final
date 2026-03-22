@@ -443,7 +443,7 @@ if (femaleVoice) {
 
     const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '');
     const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-    const VOICE_ID = "pNInz6obpgDQGcFmaJgB"; (male)
+    const VOICE_ID = "pNInz6obpgDQGcFmaJgB";
     //const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; (female)
 
     if (currentAudioRef.current) {
